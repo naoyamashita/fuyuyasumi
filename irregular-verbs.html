@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>不規則動詞クイズ（2欄：過去形・過去分詞）</title>
+  <title>不規則動詞クイズ（過去形／過去分詞）</title>
   <style>
     :root { font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
     body { margin: 0; background:#f6f7f9; color:#111; }
@@ -14,16 +14,13 @@
     .muted { color:#666; font-size: 13px; }
     .progress { height: 10px; background:#e8eaee; border-radius:999px; overflow:hidden; }
     .bar { height: 100%; width:0%; background:#111; transition: width .25s ease; }
-
     .questionBox { margin-top: 12px; padding: 14px; border: 1px solid #e6e9f0; border-radius: 14px; background:#fbfcff; }
     .qline { display:flex; gap:10px; flex-wrap:wrap; align-items:baseline; }
     .tag { font-size: 12px; color:#555; background:#eef1f6; padding: 2px 8px; border-radius: 999px; }
     .big { font-size: 22px; font-weight: 800; letter-spacing: .2px; }
     .bigcode { font-size: 22px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-
     .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
     @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
-
     label { font-size: 13px; color:#444; display:block; }
     input[type="text"] {
       width: 100%;
@@ -34,16 +31,13 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     }
     input[type="text"]:focus { outline: none; border-color:#111; box-shadow: 0 0 0 3px rgba(0,0,0,.08); }
-
     button { border: 0; border-radius: 12px; padding: 11px 14px; font-size: 14px; cursor: pointer; }
     .primary { background:#111; color:#fff; }
     .ghost { background:#eef1f6; color:#111; }
     .danger { background:#ffe6e6; color:#900; }
-
     .feedback { margin-top: 12px; padding: 12px; border-radius: 12px; background:#f3f4f6; font-size: 14px; }
     .ok { background:#eaffea; }
     .ng { background:#ffecec; }
-
     details { background:#fff; border-radius: 12px; padding: 10px 12px; border: 1px solid #e4e7ee; }
     summary { cursor:pointer; font-weight: 600; }
     .small { font-size: 12px; color:#555; }
@@ -53,7 +47,7 @@
 <body>
   <div class="wrap">
     <div class="card" id="screen-start">
-      <h1>不規則動詞クイズ（過去形・過去分詞：2欄）</h1>
+      <h1>不規則動詞クイズ（過去形／過去分詞）</h1>
       <p class="muted">
         表示される <span class="kbd">意味</span> と <span class="kbd">原形</span> を見て、
         <span class="kbd">過去形</span> と <span class="kbd">過去分詞</span> をそれぞれ入力します（50問ランダム1周）。
@@ -125,10 +119,9 @@
   </div>
 
 <script>
-/** ▼表示時間（ms）ここだけ調整すればOK */
-const NEXT_DELAY_BOTH_CORRECT = 1000; // 過去形&過去分詞 両方正解
-const NEXT_DELAY_ANY_WRONG    = 2200; // どちらか間違い
-const RESULT_DELAY = 450;             // 最終問題→結果へ
+const NEXT_DELAY_BOTH_CORRECT = 1000;
+const NEXT_DELAY_ANY_WRONG    = 2200;
+const RESULT_DELAY = 450;
 
 const QUESTIONS = [
   { meaning:"～になる", base:"become", past:["became"], pp:["become"] },
@@ -191,7 +184,6 @@ function showScreen(name) {
   el("screen-quiz").style.display = name === "quiz" ? "" : "none";
   el("screen-result").style.display = name === "result" ? "" : "none";
 }
-
 function shuffle(array) {
   const a = array.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -200,8 +192,6 @@ function shuffle(array) {
   }
   return a;
 }
-
-/** 英語回答向け */
 function normalize(str) {
   if (str == null) return "";
   let s = String(str).trim();
@@ -212,8 +202,7 @@ function normalize(str) {
 }
 function isCorrect(userInput, answers) {
   const u = normalize(userInput);
-  const pool = answers.map(normalize);
-  return pool.includes(u);
+  return answers.map(normalize).includes(u);
 }
 function escapeHtml(s) {
   return String(s)
@@ -224,82 +213,51 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-// --- State ---
-let order = [];
-let idx = 0;
-let scorePast = 0;
-let scorePP = 0;
-let scoreBoth = 0;
-let startedAt = null;
-let log = [];
+let order = [], idx = 0, scorePast = 0, scorePP = 0, scoreBoth = 0, startedAt = null, log = [];
 
 function start() {
   order = shuffle(QUESTIONS.map((_, i) => i));
-  idx = 0;
-  scorePast = 0;
-  scorePP = 0;
-  scoreBoth = 0;
-  startedAt = Date.now();
-  log = [];
-
+  idx = 0; scorePast = 0; scorePP = 0; scoreBoth = 0;
+  startedAt = Date.now(); log = [];
   el("qtotal").textContent = String(TOTAL);
   el("scorePast").textContent = "0";
   el("scorePP").textContent = "0";
   el("scoreBoth").textContent = "0";
   el("feedback").style.display = "none";
-
   showScreen("quiz");
   render();
   el("pastInput").focus();
 }
-
 function render() {
   const total = order.length;
-  const qIndex = order[idx];
-  const item = QUESTIONS[qIndex];
-
+  const item = QUESTIONS[order[idx]];
   el("qno").textContent = String(idx + 1);
   el("meaning").textContent = item.meaning;
   el("base").textContent = item.base;
-
   el("pastInput").value = "";
   el("ppInput").value = "";
   el("feedback").style.display = "none";
   el("bar").style.width = Math.round((idx / total) * 100) + "%";
 }
-
 function submit(isSkip=false) {
   const total = order.length;
-  const qIndex = order[idx];
-  const item = QUESTIONS[qIndex];
-
+  const item = QUESTIONS[order[idx]];
   const userPast = isSkip ? "" : el("pastInput").value;
   const userPP   = isSkip ? "" : el("ppInput").value;
-
   const pastOK = isSkip ? false : isCorrect(userPast, item.past);
   const ppOK   = isSkip ? false : isCorrect(userPP, item.pp);
-
   if (pastOK) scorePast++;
   if (ppOK) scorePP++;
   if (pastOK && ppOK) scoreBoth++;
-
   el("scorePast").textContent = String(scorePast);
   el("scorePP").textContent = String(scorePP);
   el("scoreBoth").textContent = String(scoreBoth);
 
-  log.push({
-    meaning: item.meaning,
-    base: item.base,
-    userPast, userPP,
-    pastOK, ppOK,
-    pastAns: item.past.slice(),
-    ppAns: item.pp.slice()
-  });
+  log.push({ meaning:item.meaning, base:item.base, userPast, userPP, pastOK, ppOK, pastAns:item.past.slice(), ppAns:item.pp.slice() });
 
   const fb = el("feedback");
   fb.style.display = "";
   fb.className = "feedback " + ((pastOK && ppOK) ? "ok" : "ng");
-
   fb.innerHTML =
     (pastOK ? `✅ 過去形：正解` : `❌ 過去形：正解は <strong>${escapeHtml(item.past[0])}</strong>`) +
     (item.past.length > 1 ? `<div class="small">別解：${item.past.slice(1).map(escapeHtml).join(" / ")}</div>` : "") +
@@ -316,44 +274,29 @@ function submit(isSkip=false) {
     setTimeout(next, delay);
   }
 }
-
-function next() {
-  if (idx + 1 >= order.length) return;
-  idx++;
-  render();
-  el("pastInput").focus();
-}
-
+function next() { if (++idx < order.length) { render(); el("pastInput").focus(); } }
 function showResult() {
-  const elapsedSec = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
+  const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
   const pctPast = Math.round((scorePast / TOTAL) * 1000) / 10;
   const pctPP = Math.round((scorePP / TOTAL) * 1000) / 10;
   const pctBoth = Math.round((scoreBoth / TOTAL) * 1000) / 10;
-
   el("finalScore").textContent =
     `過去形：${scorePast}/${TOTAL}（${pctPast}%）｜過去分詞：${scorePP}/${TOTAL}（${pctPP}%）｜両方：${scoreBoth}/${TOTAL}（${pctBoth}%）`;
-
-  el("finalMeta").textContent =
-    `所要時間：${elapsedSec}秒 / 開始：${new Date(startedAt).toLocaleString()} / 終了：${new Date().toLocaleString()}`;
-
+  el("finalMeta").textContent = `所要時間：${elapsedSec}秒`;
   el("review").style.display = "none";
   el("review").innerHTML = "";
   el("btn-review").textContent = "解答レビューを表示";
-
   showScreen("result");
 }
-
 function buildReview() {
   const container = el("review");
   container.innerHTML = "";
-
   log.forEach((r, i) => {
     const d = document.createElement("details");
     const s = document.createElement("summary");
     const mark = (r.pastOK && r.ppOK) ? "✅" : (r.pastOK || r.ppOK) ? "🟨" : "❌";
     s.innerHTML = `${i + 1}. ${mark} ${escapeHtml(r.meaning)} / <span class="small">${escapeHtml(r.base)}</span>`;
     d.appendChild(s);
-
     const div = document.createElement("div");
     div.className = "small";
     div.style.marginTop = "8px";
@@ -363,18 +306,12 @@ function buildReview() {
       `<br>` +
       `過去分詞：あなた <strong>${r.userPP ? escapeHtml(r.userPP) : "（未回答）"}</strong> ／ 正解 <strong>${escapeHtml(r.ppAns[0])}</strong>` +
       (r.ppAns.length > 1 ? `（別解：${r.ppAns.slice(1).map(escapeHtml).join(" / ")}）` : "");
-
     d.appendChild(div);
     container.appendChild(d);
   });
 }
+function resetAll() { if (confirm("リセットして最初からやり直しますか？")) showScreen("start"); }
 
-function resetAll() {
-  if (!confirm("リセットして最初からやり直しますか？")) return;
-  showScreen("start");
-}
-
-// --- Events ---
 el("btn-start").addEventListener("click", start);
 el("btn-submit").addEventListener("click", () => submit(false));
 el("btn-skip").addEventListener("click", () => submit(true));
@@ -382,29 +319,17 @@ el("btn-reset").addEventListener("click", resetAll);
 el("btn-retry").addEventListener("click", start);
 el("btn-review").addEventListener("click", () => {
   const box = el("review");
-  if (box.style.display === "none") {
-    buildReview();
-    box.style.display = "";
-    el("btn-review").textContent = "解答レビューを隠す";
-  } else {
-    box.style.display = "none";
-    el("btn-review").textContent = "解答レビューを表示";
-  }
+  if (box.style.display === "none") { buildReview(); box.style.display = ""; el("btn-review").textContent = "解答レビューを隠す"; }
+  else { box.style.display = "none"; el("btn-review").textContent = "解答レビューを表示"; }
 });
-
-// Enterで「過去形→過去分詞→回答」
 document.addEventListener("keydown", (e) => {
   const inQuiz = el("screen-quiz").style.display !== "none";
   if (!inQuiz) return;
-
   if (e.key === "Enter") {
     e.preventDefault();
     const active = document.activeElement;
-    if (active && active.id === "pastInput") {
-      el("ppInput").focus();
-    } else {
-      submit(false);
-    }
+    if (active && active.id === "pastInput") el("ppInput").focus();
+    else submit(false);
   }
 });
 </script>
