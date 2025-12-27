@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>不規則動詞クイズ（過去形／過去分詞）</title>
+  <title>不規則動詞クイズ（2欄：過去形・過去分詞）</title>
   <style>
     :root { font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
     body { margin: 0; background:#f6f7f9; color:#111; }
@@ -26,7 +26,7 @@
 
     label { font-size: 13px; color:#444; display:block; }
     input[type="text"] {
-      width: 70%;
+      width: 100%;
       padding: 12px 14px;
       border-radius: 12px;
       border: 1px solid #cfd5df;
@@ -53,11 +53,11 @@
 <body>
   <div class="wrap">
     <div class="card" id="screen-start">
-      <h1>不規則動詞クイズ（過去形／過去分詞）</h1>
+      <h1>不規則動詞クイズ（過去形・過去分詞：2欄）</h1>
       <p class="muted">
         表示される <span class="kbd">意味</span> と <span class="kbd">原形</span> を見て、
         <span class="kbd">過去形</span> と <span class="kbd">過去分詞</span> をそれぞれ入力します（50問ランダム1周）。
-        <br>Enterで回答できます。
+        <br>Enterで「過去形→過去分詞→回答」の順に進めます。
       </p>
       <div class="row" style="margin-top:14px;">
         <button class="primary" id="btn-start">はじめる</button>
@@ -125,10 +125,11 @@
   </div>
 
 <script>
-/**
- * 50問データ（CSVから整形済み）
- * past / pp は配列：別解（/ 区切り）を許容
- */
+/** ▼表示時間（ms）ここだけ調整すればOK */
+const NEXT_DELAY_BOTH_CORRECT = 1000; // 過去形&過去分詞 両方正解
+const NEXT_DELAY_ANY_WRONG    = 2200; // どちらか間違い
+const RESULT_DELAY = 450;             // 最終問題→結果へ
+
 const QUESTIONS = [
   { meaning:"～になる", base:"become", past:["became"], pp:["become"] },
   { meaning:"始める", base:"begin", past:["began"], pp:["begun"] },
@@ -175,15 +176,14 @@ const QUESTIONS = [
   { meaning:"泳ぐ", base:"swim", past:["swam"], pp:["swum"] },
   { meaning:"持っていく", base:"take", past:["took"], pp:["taken"] },
   { meaning:"教える", base:"teach", past:["taught"], pp:["taught"] },
-  { meaning:"話す", base:"tell", past:["told"], pp:["told"] }, // teIl を補正
-  { meaning:"思う", base:"think", past:["thought"], pp:["thought"] }, // thoughf/fhought を補正
+  { meaning:"話す", base:"tell", past:["told"], pp:["told"] },
+  { meaning:"思う", base:"think", past:["thought"], pp:["thought"] },
   { meaning:"勝つ", base:"win", past:["won"], pp:["won"] },
   { meaning:"理解する", base:"understand", past:["understood"], pp:["understood"] },
   { meaning:"書く", base:"write", past:["wrote"], pp:["written"] },
 ];
 
 const TOTAL = QUESTIONS.length;
-
 const el = (id) => document.getElementById(id);
 
 function showScreen(name) {
@@ -201,23 +201,20 @@ function shuffle(array) {
   return a;
 }
 
-/** 英語回答向け：空白除去・小文字化・一部記号除去 */
+/** 英語回答向け */
 function normalize(str) {
   if (str == null) return "";
   let s = String(str).trim();
   s = s.replace(/[ \u3000\t\r\n]+/g, "");
   s = s.toLowerCase();
-  // スラッシュやカンマ等は判定上いらない（ユーザー入力の余計な記号対策）
   s = s.replace(/[，,。．.・･：:;／/（）()［\[\]］【】『』「」"“”'’\-ー―—–]/g, "");
   return s;
 }
-
 function isCorrect(userInput, answers) {
   const u = normalize(userInput);
   const pool = answers.map(normalize);
   return pool.includes(u);
 }
-
 function escapeHtml(s) {
   return String(s)
     .replaceAll("&", "&amp;")
@@ -234,7 +231,7 @@ let scorePast = 0;
 let scorePP = 0;
 let scoreBoth = 0;
 let startedAt = null;
-let log = []; // {meaning, base, userPast, userPP, pastOK, ppOK, pastAns, ppAns}
+let log = [];
 
 function start() {
   order = shuffle(QUESTIONS.map((_, i) => i));
@@ -268,9 +265,7 @@ function render() {
   el("pastInput").value = "";
   el("ppInput").value = "";
   el("feedback").style.display = "none";
-
-  const pct = Math.round((idx / total) * 100);
-  el("bar").style.width = pct + "%";
+  el("bar").style.width = Math.round((idx / total) * 100) + "%";
 }
 
 function submit(isSkip=false) {
@@ -295,10 +290,8 @@ function submit(isSkip=false) {
   log.push({
     meaning: item.meaning,
     base: item.base,
-    userPast,
-    userPP,
-    pastOK,
-    ppOK,
+    userPast, userPP,
+    pastOK, ppOK,
     pastAns: item.past.slice(),
     ppAns: item.pp.slice()
   });
@@ -307,21 +300,20 @@ function submit(isSkip=false) {
   fb.style.display = "";
   fb.className = "feedback " + ((pastOK && ppOK) ? "ok" : "ng");
 
-  const pastShow = escapeHtml(item.past[0]);
-  const ppShow = escapeHtml(item.pp[0]);
-
   fb.innerHTML =
-    (pastOK ? `✅ 過去形：正解` : `❌ 過去形：正解は <strong>${pastShow}</strong>`) +
+    (pastOK ? `✅ 過去形：正解` : `❌ 過去形：正解は <strong>${escapeHtml(item.past[0])}</strong>`) +
     (item.past.length > 1 ? `<div class="small">別解：${item.past.slice(1).map(escapeHtml).join(" / ")}</div>` : "") +
     `<hr style="border:none;border-top:1px solid rgba(0,0,0,.08); margin:10px 0;">` +
-    (ppOK ? `✅ 過去分詞：正解` : `❌ 過去分詞：正解は <strong>${ppShow}</strong>`) +
+    (ppOK ? `✅ 過去分詞：正解` : `❌ 過去分詞：正解は <strong>${escapeHtml(item.pp[0])}</strong>`) +
     (item.pp.length > 1 ? `<div class="small">別解：${item.pp.slice(1).map(escapeHtml).join(" / ")}</div>` : "");
+
+  const delay = (pastOK && ppOK) ? NEXT_DELAY_BOTH_CORRECT : NEXT_DELAY_ANY_WRONG;
 
   if (idx + 1 >= total) {
     el("bar").style.width = "100%";
-    setTimeout(showResult, 450);
+    setTimeout(showResult, RESULT_DELAY);
   } else {
-    setTimeout(next, 900);
+    setTimeout(next, delay);
   }
 }
 
@@ -400,7 +392,7 @@ el("btn-review").addEventListener("click", () => {
   }
 });
 
-// Enterで回答（過去形欄→過去分詞欄→回答 の順）
+// Enterで「過去形→過去分詞→回答」
 document.addEventListener("keydown", (e) => {
   const inQuiz = el("screen-quiz").style.display !== "none";
   if (!inQuiz) return;
