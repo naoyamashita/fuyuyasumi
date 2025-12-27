@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>不規則動詞クイズ（過去形／過去分詞）</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
+    body { margin: 0; background:#f6f7f9; color:#111; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 20px; }
+    .card { background:#fff; border-radius:16px; box-shadow: 0 8px 24px rgba(0,0,0,.08); padding: 18px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .muted { color:#666; font-size: 13px; }
+    .progress { height: 10px; background:#e8eaee; border-radius:999px; overflow:hidden; }
+    .bar { height: 100%; width:0%; background:#111; transition: width .25s ease; }
+
+    .questionBox { margin-top: 12px; padding: 14px; border: 1px solid #e6e9f0; border-radius: 14px; background:#fbfcff; }
+    .qline { display:flex; gap:10px; flex-wrap:wrap; align-items:baseline; }
+    .tag { font-size: 12px; color:#555; background:#eef1f6; padding: 2px 8px; border-radius: 999px; }
+    .big { font-size: 22px; font-weight: 800; letter-spacing: .2px; }
+    .bigcode { font-size: 22px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+
+    label { font-size: 13px; color:#444; display:block; }
+    input[type="text"] {
+      width: 70%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #cfd5df;
+      font-size: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    input[type="text"]:focus { outline: none; border-color:#111; box-shadow: 0 0 0 3px rgba(0,0,0,.08); }
+
+    button { border: 0; border-radius: 12px; padding: 11px 14px; font-size: 14px; cursor: pointer; }
+    .primary { background:#111; color:#fff; }
+    .ghost { background:#eef1f6; color:#111; }
+    .danger { background:#ffe6e6; color:#900; }
+
+    .feedback { margin-top: 12px; padding: 12px; border-radius: 12px; background:#f3f4f6; font-size: 14px; }
+    .ok { background:#eaffea; }
+    .ng { background:#ffecec; }
+
+    details { background:#fff; border-radius: 12px; padding: 10px 12px; border: 1px solid #e4e7ee; }
+    summary { cursor:pointer; font-weight: 600; }
+    .small { font-size: 12px; color:#555; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#f1f3f7; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="screen-start">
+      <h1>不規則動詞クイズ（過去形／過去分詞）</h1>
+      <p class="muted">
+        表示される <span class="kbd">意味</span> と <span class="kbd">原形</span> を見て、
+        <span class="kbd">過去形</span> と <span class="kbd">過去分詞</span> をそれぞれ入力します（50問ランダム1周）。
+        <br>Enterで回答できます。
+      </p>
+      <div class="row" style="margin-top:14px;">
+        <button class="primary" id="btn-start">はじめる</button>
+      </div>
+    </div>
+
+    <div class="card" id="screen-quiz" style="display:none;">
+      <div class="row" style="justify-content:space-between;">
+        <div><span style="font-weight:800;" id="qno">1</span> / <span id="qtotal">50</span></div>
+        <div class="muted">
+          過去形：<span id="scorePast">0</span> /
+          過去分詞：<span id="scorePP">0</span> /
+          両方：<span id="scoreBoth">0</span>
+        </div>
+      </div>
+      <div class="progress" style="margin-top:10px;">
+        <div class="bar" id="bar"></div>
+      </div>
+
+      <div class="questionBox">
+        <div class="qline">
+          <span class="tag">意味</span>
+          <span class="big" id="meaning"></span>
+        </div>
+        <div class="qline" style="margin-top:6px;">
+          <span class="tag">原形</span>
+          <span class="bigcode" id="base"></span>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label for="pastInput">過去形（Past）</label>
+          <input id="pastInput" type="text" autocomplete="off" placeholder="例：went" />
+        </div>
+        <div>
+          <label for="ppInput">過去分詞（Past Participle）</label>
+          <input id="ppInput" type="text" autocomplete="off" placeholder="例：gone" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top: 10px;">
+        <button class="primary" id="btn-submit">回答する</button>
+        <button class="ghost" id="btn-skip" title="未入力でも次へ（不正解扱い）">スキップ</button>
+        <button class="danger" id="btn-reset" title="最初からやり直し">リセット</button>
+      </div>
+
+      <div class="feedback" id="feedback" style="display:none;"></div>
+    </div>
+
+    <div class="card" id="screen-result" style="display:none;">
+      <h1>結果</h1>
+      <p style="font-size:18px; margin: 10px 0;">
+        <strong id="finalScore"></strong>
+      </p>
+      <p class="muted" id="finalMeta"></p>
+
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" id="btn-retry">もう一度（再シャッフル）</button>
+        <button class="ghost" id="btn-review">解答レビューを表示</button>
+      </div>
+
+      <div style="margin-top:12px;" id="review" style="display:none;"></div>
+    </div>
+  </div>
+
+<script>
+/**
+ * 50問データ（CSVから整形済み）
+ * past / pp は配列：別解（/ 区切り）を許容
+ */
+const QUESTIONS = [
+  { meaning:"～になる", base:"become", past:["became"], pp:["become"] },
+  { meaning:"始める", base:"begin", past:["began"], pp:["begun"] },
+  { meaning:"こわす", base:"break", past:["broke"], pp:["broken"] },
+  { meaning:"持ってくる", base:"bring", past:["brought"], pp:["brought"] },
+  { meaning:"建てる", base:"build", past:["built"], pp:["built"] },
+  { meaning:"買う", base:"buy", past:["bought"], pp:["bought"] },
+  { meaning:"つかまえる", base:"catch", past:["caught"], pp:["caught"] },
+  { meaning:"来る", base:"come", past:["came"], pp:["come"] },
+  { meaning:"する", base:"do", past:["did"], pp:["done"] },
+  { meaning:"飲む", base:"drink", past:["drank"], pp:["drunk"] },
+  { meaning:"運転する", base:"drive", past:["drove"], pp:["driven"] },
+  { meaning:"食べる", base:"eat", past:["ate"], pp:["eaten"] },
+  { meaning:"落ちる", base:"fall", past:["fell"], pp:["fallen"] },
+  { meaning:"感じる", base:"feel", past:["felt"], pp:["felt"] },
+  { meaning:"見つける", base:"find", past:["found"], pp:["found"] },
+  { meaning:"飛ぶ", base:"fly", past:["flew"], pp:["flown"] },
+  { meaning:"忘れる", base:"forget", past:["forgot"], pp:["forgot","forgotten"] },
+  { meaning:"得る", base:"get", past:["got"], pp:["got","gotten"] },
+  { meaning:"与える", base:"give", past:["gave"], pp:["given"] },
+  { meaning:"行く", base:"go", past:["went"], pp:["gone"] },
+  { meaning:"もっている", base:"have", past:["had"], pp:["had"] },
+  { meaning:"間く", base:"hear", past:["heard"], pp:["heard"] },
+  { meaning:"打つ", base:"hit", past:["hit"], pp:["hit"] },
+  { meaning:"抱く", base:"hold", past:["held"], pp:["held"] },
+  { meaning:"（状態の）ままている", base:"keep", past:["kept"], pp:["kept"] },
+  { meaning:"知っている", base:"know", past:["knew"], pp:["known"] },
+  { meaning:"出発する", base:"leave", past:["left"], pp:["left"] },
+  { meaning:"失う", base:"lose", past:["lost"], pp:["lost"] },
+  { meaning:"つくる", base:"make", past:["made"], pp:["made"] },
+  { meaning:"会う", base:"meet", past:["met"], pp:["met"] },
+  { meaning:"置く", base:"put", past:["put"], pp:["put"] },
+  { meaning:"読む", base:"read", past:["read"], pp:["read"] },
+  { meaning:"走る", base:"run", past:["ran"], pp:["run"] },
+  { meaning:"言う", base:"say", past:["said"], pp:["said"] },
+  { meaning:"見る", base:"see", past:["saw"], pp:["seen"] },
+  { meaning:"売る", base:"sell", past:["sold"], pp:["sold"] },
+  { meaning:"送る", base:"send", past:["sent"], pp:["sent"] },
+  { meaning:"見せる", base:"show", past:["showed"], pp:["shown"] },
+  { meaning:"歌う", base:"sing", past:["sang"], pp:["sung"] },
+  { meaning:"眠る", base:"sleep", past:["slept"], pp:["slept"] },
+  { meaning:"話す", base:"speak", past:["spoke"], pp:["spoken"] },
+  { meaning:"立っている", base:"stand", past:["stood"], pp:["stood"] },
+  { meaning:"泳ぐ", base:"swim", past:["swam"], pp:["swum"] },
+  { meaning:"持っていく", base:"take", past:["took"], pp:["taken"] },
+  { meaning:"教える", base:"teach", past:["taught"], pp:["taught"] },
+  { meaning:"話す", base:"tell", past:["told"], pp:["told"] }, // teIl を補正
+  { meaning:"思う", base:"think", past:["thought"], pp:["thought"] }, // thoughf/fhought を補正
+  { meaning:"勝つ", base:"win", past:["won"], pp:["won"] },
+  { meaning:"理解する", base:"understand", past:["understood"], pp:["understood"] },
+  { meaning:"書く", base:"write", past:["wrote"], pp:["written"] },
+];
+
+const TOTAL = QUESTIONS.length;
+
+const el = (id) => document.getElementById(id);
+
+function showScreen(name) {
+  el("screen-start").style.display = name === "start" ? "" : "none";
+  el("screen-quiz").style.display = name === "quiz" ? "" : "none";
+  el("screen-result").style.display = name === "result" ? "" : "none";
+}
+
+function shuffle(array) {
+  const a = array.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** 英語回答向け：空白除去・小文字化・一部記号除去 */
+function normalize(str) {
+  if (str == null) return "";
+  let s = String(str).trim();
+  s = s.replace(/[ \u3000\t\r\n]+/g, "");
+  s = s.toLowerCase();
+  // スラッシュやカンマ等は判定上いらない（ユーザー入力の余計な記号対策）
+  s = s.replace(/[，,。．.・･：:;／/（）()［\[\]］【】『』「」"“”'’\-ー―—–]/g, "");
+  return s;
+}
+
+function isCorrect(userInput, answers) {
+  const u = normalize(userInput);
+  const pool = answers.map(normalize);
+  return pool.includes(u);
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+// --- State ---
+let order = [];
+let idx = 0;
+let scorePast = 0;
+let scorePP = 0;
+let scoreBoth = 0;
+let startedAt = null;
+let log = []; // {meaning, base, userPast, userPP, pastOK, ppOK, pastAns, ppAns}
+
+function start() {
+  order = shuffle(QUESTIONS.map((_, i) => i));
+  idx = 0;
+  scorePast = 0;
+  scorePP = 0;
+  scoreBoth = 0;
+  startedAt = Date.now();
+  log = [];
+
+  el("qtotal").textContent = String(TOTAL);
+  el("scorePast").textContent = "0";
+  el("scorePP").textContent = "0";
+  el("scoreBoth").textContent = "0";
+  el("feedback").style.display = "none";
+
+  showScreen("quiz");
+  render();
+  el("pastInput").focus();
+}
+
+function render() {
+  const total = order.length;
+  const qIndex = order[idx];
+  const item = QUESTIONS[qIndex];
+
+  el("qno").textContent = String(idx + 1);
+  el("meaning").textContent = item.meaning;
+  el("base").textContent = item.base;
+
+  el("pastInput").value = "";
+  el("ppInput").value = "";
+  el("feedback").style.display = "none";
+
+  const pct = Math.round((idx / total) * 100);
+  el("bar").style.width = pct + "%";
+}
+
+function submit(isSkip=false) {
+  const total = order.length;
+  const qIndex = order[idx];
+  const item = QUESTIONS[qIndex];
+
+  const userPast = isSkip ? "" : el("pastInput").value;
+  const userPP   = isSkip ? "" : el("ppInput").value;
+
+  const pastOK = isSkip ? false : isCorrect(userPast, item.past);
+  const ppOK   = isSkip ? false : isCorrect(userPP, item.pp);
+
+  if (pastOK) scorePast++;
+  if (ppOK) scorePP++;
+  if (pastOK && ppOK) scoreBoth++;
+
+  el("scorePast").textContent = String(scorePast);
+  el("scorePP").textContent = String(scorePP);
+  el("scoreBoth").textContent = String(scoreBoth);
+
+  log.push({
+    meaning: item.meaning,
+    base: item.base,
+    userPast,
+    userPP,
+    pastOK,
+    ppOK,
+    pastAns: item.past.slice(),
+    ppAns: item.pp.slice()
+  });
+
+  const fb = el("feedback");
+  fb.style.display = "";
+  fb.className = "feedback " + ((pastOK && ppOK) ? "ok" : "ng");
+
+  const pastShow = escapeHtml(item.past[0]);
+  const ppShow = escapeHtml(item.pp[0]);
+
+  fb.innerHTML =
+    (pastOK ? `✅ 過去形：正解` : `❌ 過去形：正解は <strong>${pastShow}</strong>`) +
+    (item.past.length > 1 ? `<div class="small">別解：${item.past.slice(1).map(escapeHtml).join(" / ")}</div>` : "") +
+    `<hr style="border:none;border-top:1px solid rgba(0,0,0,.08); margin:10px 0;">` +
+    (ppOK ? `✅ 過去分詞：正解` : `❌ 過去分詞：正解は <strong>${ppShow}</strong>`) +
+    (item.pp.length > 1 ? `<div class="small">別解：${item.pp.slice(1).map(escapeHtml).join(" / ")}</div>` : "");
+
+  if (idx + 1 >= total) {
+    el("bar").style.width = "100%";
+    setTimeout(showResult, 450);
+  } else {
+    setTimeout(next, 900);
+  }
+}
+
+function next() {
+  if (idx + 1 >= order.length) return;
+  idx++;
+  render();
+  el("pastInput").focus();
+}
+
+function showResult() {
+  const elapsedSec = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
+  const pctPast = Math.round((scorePast / TOTAL) * 1000) / 10;
+  const pctPP = Math.round((scorePP / TOTAL) * 1000) / 10;
+  const pctBoth = Math.round((scoreBoth / TOTAL) * 1000) / 10;
+
+  el("finalScore").textContent =
+    `過去形：${scorePast}/${TOTAL}（${pctPast}%）｜過去分詞：${scorePP}/${TOTAL}（${pctPP}%）｜両方：${scoreBoth}/${TOTAL}（${pctBoth}%）`;
+
+  el("finalMeta").textContent =
+    `所要時間：${elapsedSec}秒 / 開始：${new Date(startedAt).toLocaleString()} / 終了：${new Date().toLocaleString()}`;
+
+  el("review").style.display = "none";
+  el("review").innerHTML = "";
+  el("btn-review").textContent = "解答レビューを表示";
+
+  showScreen("result");
+}
+
+function buildReview() {
+  const container = el("review");
+  container.innerHTML = "";
+
+  log.forEach((r, i) => {
+    const d = document.createElement("details");
+    const s = document.createElement("summary");
+    const mark = (r.pastOK && r.ppOK) ? "✅" : (r.pastOK || r.ppOK) ? "🟨" : "❌";
+    s.innerHTML = `${i + 1}. ${mark} ${escapeHtml(r.meaning)} / <span class="small">${escapeHtml(r.base)}</span>`;
+    d.appendChild(s);
+
+    const div = document.createElement("div");
+    div.className = "small";
+    div.style.marginTop = "8px";
+    div.innerHTML =
+      `過去形：あなた <strong>${r.userPast ? escapeHtml(r.userPast) : "（未回答）"}</strong> ／ 正解 <strong>${escapeHtml(r.pastAns[0])}</strong>` +
+      (r.pastAns.length > 1 ? `（別解：${r.pastAns.slice(1).map(escapeHtml).join(" / ")}）` : "") +
+      `<br>` +
+      `過去分詞：あなた <strong>${r.userPP ? escapeHtml(r.userPP) : "（未回答）"}</strong> ／ 正解 <strong>${escapeHtml(r.ppAns[0])}</strong>` +
+      (r.ppAns.length > 1 ? `（別解：${r.ppAns.slice(1).map(escapeHtml).join(" / ")}）` : "");
+
+    d.appendChild(div);
+    container.appendChild(d);
+  });
+}
+
+function resetAll() {
+  if (!confirm("リセットして最初からやり直しますか？")) return;
+  showScreen("start");
+}
+
+// --- Events ---
+el("btn-start").addEventListener("click", start);
+el("btn-submit").addEventListener("click", () => submit(false));
+el("btn-skip").addEventListener("click", () => submit(true));
+el("btn-reset").addEventListener("click", resetAll);
+el("btn-retry").addEventListener("click", start);
+el("btn-review").addEventListener("click", () => {
+  const box = el("review");
+  if (box.style.display === "none") {
+    buildReview();
+    box.style.display = "";
+    el("btn-review").textContent = "解答レビューを隠す";
+  } else {
+    box.style.display = "none";
+    el("btn-review").textContent = "解答レビューを表示";
+  }
+});
+
+// Enterで回答（過去形欄→過去分詞欄→回答 の順）
+document.addEventListener("keydown", (e) => {
+  const inQuiz = el("screen-quiz").style.display !== "none";
+  if (!inQuiz) return;
+
+  if (e.key === "Enter") {
+    e.preventDefault();
+    const active = document.activeElement;
+    if (active && active.id === "pastInput") {
+      el("ppInput").focus();
+    } else {
+      submit(false);
+    }
+  }
+});
+</script>
+</body>
+</html>
