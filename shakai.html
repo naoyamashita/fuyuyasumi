@@ -17,15 +17,17 @@
     .qno { font-weight: 700; }
     .question { font-size: 18px; line-height: 1.6; margin: 10px 0 14px; }
 
+    /* 見た目は大きいが1行入力 */
     textarea {
       width: 100%;
       padding: 12px 14px;
       border-radius: 12px;
       border: 1px solid #cfd5df;
-      font-size: 24px;      /* 文字サイズ1.5倍 */
+      font-size: 24px;      /* 約1.5倍 */
       line-height: 1.6;
       resize: none;
       box-sizing: border-box;
+      overflow: hidden;     /* 改行・スクロール不可 */
     }
     textarea:focus {
       outline: none;
@@ -50,7 +52,7 @@
 <!-- START -->
 <div class="card" id="screen-start">
   <h1>2年生 社会科 冬休みの宿題 用語を覚えよう！（練習編）</h1>
-  <p class="muted">全55問・ランダム出題。Enterキーで回答します。</p>
+  <p class="muted">全55問・ランダム出題。Enterキーは無効です。</p>
   <button class="primary" id="btn-start">はじめる</button>
 </div>
 
@@ -64,7 +66,8 @@
 
   <div class="question" id="question"></div>
 
-  <textarea id="answer" rows="2" placeholder="ここに回答を入力"></textarea>
+  <!-- rows=1 ＋ JSでEnter完全禁止 -->
+  <textarea id="answer" rows="1" placeholder="ここに回答を入力"></textarea>
 
   <div class="row" style="margin-top:10px;">
     <button class="primary" id="btn-submit">回答</button>
@@ -89,8 +92,11 @@
 </div>
 
 <script>
-const NEXT_OK = 1000, NEXT_NG = 2200;
+/* ===== 設定 ===== */
+const NEXT_OK = 1000;
+const NEXT_NG = 2200;
 
+/* ===== 問題データ（55問すべて） ===== */
 const QUESTIONS = [
   {q:"日本列島が属する造山帯",a:["環太平洋造山帯"]},
   {q:"江戸時代に、牛馬の処理などをさせられ、差別を受けていた身分",a:["えた","ひにん","えたひにん"]},
@@ -149,14 +155,17 @@ const QUESTIONS = [
   {q:"江戸時代に大名の統制のために出された法律",a:["武家諸法度"]}
 ];
 
-const el=id=>document.getElementById(id);
-let order=[],idx=0,score=0,log=[];
+/* ===== ロジック ===== */
+const el = id => document.getElementById(id);
+let order=[], idx=0, score=0, log=[];
 
-const norm=s=>s.replace(/[ 　]/g,"").toLowerCase();
-const shuffle=a=>a.map(v=>[Math.random(),v]).sort(()=>Math.random()-0.5).map(v=>v[1]);
+const norm = s => s.replace(/[ 　]/g,"").toLowerCase();
+const shuffle = a => a.map(v=>[Math.random(),v]).sort(()=>Math.random()-0.5).map(v=>v[1]);
 
 function show(scr){
-  ["start","quiz","result"].forEach(s=>el("screen-"+s).style.display=s===scr?"":"none");
+  ["start","quiz","result"].forEach(s=>{
+    el("screen-"+s).style.display = (s===scr)?"":"none";
+  });
 }
 
 function start(custom=null){
@@ -169,9 +178,9 @@ function start(custom=null){
 }
 
 function render(){
-  const q=QUESTIONS[order[idx]];
-  el("qno").textContent=idx+1;
-  el("question").textContent=q.q;
+  const q = QUESTIONS[order[idx]];
+  el("qno").textContent = idx+1;
+  el("question").textContent = q.q;
   el("answer").value="";
   el("feedback").style.display="none";
   el("bar").style.width = (idx/order.length*100)+"%";
@@ -179,56 +188,51 @@ function render(){
 }
 
 function submit(skip=false){
-  const q=QUESTIONS[order[idx]];
-  const user=skip?"":el("answer").value;
-  const ok=!skip && q.a.map(norm).includes(norm(user));
+  const q = QUESTIONS[order[idx]];
+  const user = skip?"":el("answer").value;
+  const ok = !skip && q.a.map(norm).includes(norm(user));
   if(ok) score++;
   el("score").textContent=score;
-  log.push({idx:order[idx],ok,user});
+  log.push({idx:order[idx], ok, user});
   el("feedback").style.display="";
   el("feedback").className="feedback "+(ok?"ok":"ng");
-  el("feedback").innerHTML= ok?"✅ 正解":"❌ 正解："+q.a[0];
+  el("feedback").innerHTML = ok ? "✅ 正解" : "❌ 正解：" + q.a[0];
   setTimeout(()=>{
     idx++;
-    idx>=order.length?result():render();
-  },ok?NEXT_OK:NEXT_NG);
+    idx>=order.length ? result() : render();
+  }, ok?NEXT_OK:NEXT_NG);
 }
 
 function result(){
   show("result");
-  el("finalScore").textContent=`${score} / ${order.length} 正解`;
+  el("finalScore").textContent = `${score} / ${order.length} 正解`;
 }
 
-el("btn-start").onclick=()=>start();
-el("btn-retry").onclick=()=>start();
-el("btn-wrong").onclick=()=>{
-  const wrong=log.filter(r=>!r.ok).map(r=>r.idx);
+/* ===== イベント ===== */
+el("btn-start").onclick = ()=>start();
+el("btn-retry").onclick = ()=>start();
+el("btn-submit").onclick = ()=>submit(false);
+el("btn-skip").onclick = ()=>submit(true);
+
+el("btn-wrong").onclick = ()=>{
+  const wrong = log.filter(r=>!r.ok).map(r=>r.idx);
   if(!wrong.length) return alert("間違えた問題はありません！");
   start(wrong);
 };
-el("btn-review").onclick=()=>{
-  const box=el("review");
-  box.style.display=box.style.display?"":"block";
-  box.innerHTML=log.map((r,i)=>
+
+el("btn-review").onclick = ()=>{
+  const box = el("review");
+  box.style.display = box.style.display ? "" : "block";
+  box.innerHTML = log.map((r,i)=>
     `<details><summary>${i+1} ${r.ok?"✅":"❌"} ${QUESTIONS[r.idx].q}</summary>
      正解：${QUESTIONS[r.idx].a.join(" / ")}</details>`
   ).join("");
 };
-el("btn-submit").onclick=()=>submit(false);
-el("btn-skip").onclick=()=>submit(true);
 
-/*
-document.addEventListener("keydown",e=>{
-  if(el("screen-quiz").style.display!== "none" && e.key==="Enter"){
+/* ★ 重要：Enterキー完全無効（回答も改行もさせない） */
+el("answer").addEventListener("keydown", e=>{
+  if(e.key === "Enter"){
     e.preventDefault();
-    submit(false);
-  }
-});
-*/
-// textareaで改行させない（複数行NG）
-el("answer").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault(); // 改行を禁止
   }
 });
 </script>
