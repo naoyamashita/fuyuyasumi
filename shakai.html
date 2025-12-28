@@ -217,10 +217,18 @@ el("btn-review").onclick=()=>{
 el("btn-submit").onclick=()=>submit(false);
 el("btn-skip").onclick=()=>submit(true);
 
+/*
 document.addEventListener("keydown",e=>{
   if(el("screen-quiz").style.display!== "none" && e.key==="Enter"){
     e.preventDefault();
     submit(false);
+  }
+});
+*/
+// textareaで改行させない（複数行NG）
+el("answer").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault(); // 改行を禁止
   }
 });
 </script>
